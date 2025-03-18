@@ -1,0 +1,23 @@
+
+- waiting room w/ 6 chairs, barber w/ 1 chair
+- barber sleeps when no customer in room
+- customers arrive at random times
+- customers can enter waiting room and wait for whether barber available or not. this if a FIFO queue
+- customers waiting stay until served
+- if barber busy, customers wait
+- no empty chairs --> customers leave
+
+Receptionist process:
+- greets the customer + checks if there are open waiting spaces
+- if room to wait, send to barber, else turn away
+
+Barber process:
+- add some variability. im thinking we add randomization in how long it takes barber to cut hair to fulfill this
+
+Hot swappability in main barber loop:
+- makes stuff alterabl.
+- spawning of a customer is hot swap
+    - every time customer made we can use the most recent version of the process code
+- loop in a customer process NOT hot swapped
+    - customer made --> behavior stays the same for its lifetime. but check the latest version when we make a new cust.
+
