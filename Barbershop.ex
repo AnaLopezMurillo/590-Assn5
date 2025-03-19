@@ -4,7 +4,6 @@ defmodule Barbershop do
     num_waiting = 0
     barber_busy = 0     # 0 for free, 1 for busy
 
-
     def start do
         # something here to initialize start # of customers and add to waiting room list, and spawn barber
         IO.puts("Starting the barbershop!")
@@ -24,6 +23,7 @@ defmodule Barbershop do
         barber_busy = 1
         IO.puts("Barber is cutting hair.")
         :timer.sleep(:rand.uniform(1000))
+        barber_busy = 0
     end
 
     def run_receptionist(id) do
@@ -31,6 +31,7 @@ defmodule Barbershop do
         if barber_busy == 0 do
             IO.puts("Waiting customer with id (put first in line id here) sent to barber!\n")
             # cut hair of the first in the line here
+        end
 
         if num_waiting == 0 do
             IO.puts("Serving customer #{id}.")
@@ -40,6 +41,7 @@ defmodule Barbershop do
             chairs = chairs - 1
         else 
             IO.puts("No chairs available, customer #{id} sent away.")
+        end
 
         IO.puts("")
         :timer.sleep(:rand.uniform(1000))
@@ -47,7 +49,7 @@ defmodule Barbershop do
 
     defp loop() do
         # idk if this'll necessarily work...my idea is to spawn a pid and send it to receptionist looping
-        pid = spawn(__MODULE__, customer:, [[]])
+        pid = spawn(__MODULE__, customer: , [[]])
         Process.register(pid, :procName)
         run_receptionist(pid)
 
@@ -60,4 +62,5 @@ defmodule Barbershop do
     def customer() do
         IO.puts("Customer spawned!\n")
     end
+
 end
