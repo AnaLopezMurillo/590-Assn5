@@ -4,21 +4,33 @@ defmodule Barbershop do
     num_waiting = 0
     barber_busy = 0     # 0 for free, 1 for busy
 
+
     def start do
         # something here to initialize start # of customers and add to waiting room list, and spawn barber
+        IO.puts("Starting the barbershop!")
 
-    defp barber() do
+        # spawn the receptionist here
+        receptionist = spawn(fn -> run_receptionist end)    # this is probably wrong idk
+
+        # starts spawning customers in loop
+        loop() 
+    end
+
+    def barber_sleep() do
         IO.puts("The barber is sleeping...")
     end
 
     defp cuthair(id) do
+        barber_busy = 1
         IO.puts("Barber is cutting hair.")
         :timer.sleep(:rand.uniform(1000))
     end
 
-    defp run_receptionist(id) do
-
+    def run_receptionist(id) do
         # check if barber is available
+        if barber_busy == 0 do
+            IO.puts("Waiting customer with id (put first in line id here) sent to barber!\n")
+            # cut hair of the first in the line here
 
         if num_waiting == 0 do
             IO.puts("Serving customer #{id}.")
@@ -33,14 +45,19 @@ defmodule Barbershop do
         :timer.sleep(:rand.uniform(1000))
     end
 
-    defp spawncustomer() do
-        # spawn a customer process here, send to receptionist
+    defp loop() do
+        # idk if this'll necessarily work...my idea is to spawn a pid and send it to receptionist looping
+        pid = spawn(__MODULE__, customer:, [[]])
+        Process.register(pid, :procName)
+        run_receptionist(pid)
 
-    def loop() do
-        # this is the main run function
-         IO.puts("Starting the barbershop!")
+        # we might need to add these customers to a list to keep track of queue here
 
-         # need to add some sort of process that keeps spawning customers at random times 
+        :timer.sleep(:rand.uniform(5000))
+        loop()
+    end
 
+    def customer() do
+        IO.puts("Customer spawned!\n")
     end
 end
