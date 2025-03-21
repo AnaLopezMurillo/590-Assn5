@@ -1,66 +1,77 @@
-defmodule Barbershop do 
-    # Define the consts
-    chairs = 6  
-    num_waiting = 0
-    barber_busy = 0     # 0 for free, 1 for busy
+defmodule Barbershop do
+  def start do
+    IO.puts("Starting the barbershop!")
 
-    def start do
-        # something here to initialize start # of customers and add to waiting room list, and spawn barber
-        IO.puts("Starting the barbershop!")
+    # Spawn barber and receptionist processes
+    barber = spawn(fn -> barber_loop([]) end)
+    receptionist = spawn(fn -> receptionist_loop(barber, []) end)
 
-        # spawn the receptionist here
-        receptionist = spawn(fn -> run_receptionist end)    # this is probably wrong idk
+    # Start generating customers
+    spawn(fn -> generate_customers(receptionist) end)
 
-        # starts spawning customers in loop
-        loop() 
+    # Keep the main process alive
+    Process.sleep(:infinity)
+  end
+
+  # Barber Process: Handles customers waiting in queue
+  defp barber_loop([]) do
+    IO.puts("No customers. Barber is sleeping...")
+
+    receive do
+      {:next_customer, [next | rest]} ->
+        IO.puts("Barber is cutting hair for customer #{next}.")
+        :timer.sleep(:rand.uniform(3000))  # Simulating haircut
+        IO.puts("Customer #{next} is done. Barber is available.")
+        barber_loop(rest)  # Continue with next customer
+
+      _ ->
+        barber_loop([])
     end
+  end
 
-    def barber_sleep() do
-        IO.puts("The barber is sleeping...")
+  defp barber_loop(waiting_list) do
+    receive do
+      {:next_customer, [next | rest]} ->
+        IO.puts("Barber is cutting hair for customer #{next}.")
+        :timer.sleep(:rand.uniform(3000))  # Simulating haircut
+        IO.puts("Customer #{next} is done. Barber is available.")
+        barber_loop(rest)
+
+      _ ->
+        barber_loop(waiting_list)
     end
+  end
 
-    defp cuthair(id) do
-        barber_busy = 1
-        IO.puts("Barber is cutting hair.")
-        :timer.sleep(:rand.uniform(1000))
-        barber_busy = 0
-    end
+  # Receptionist Process: Handles customer arrivals
+  defp receptionist_loop(barber, waiting_list) do
+    receive do
+      {:customer, id} ->
+        IO.puts("Customer #{id} arrives at the shop.")
 
-    def run_receptionist(id) do
-        # check if barber is available
-        if barber_busy == 0 do
-            IO.puts("Waiting customer with id (put first in line id here) sent to barber!\n")
-            # cut hair of the first in the line here
+        if length(waiting_list) < 6 do
+          IO.puts("Customer #{id} is waiting.")
+          new_list = waiting_list ++ [id]
+
+          # Wake up barber if he's idle
+          if waiting_list == [] do
+            send(barber, {:next_customer, new_list})
+          end
+
+          receptionist_loop(barber, new_list)
+        else
+          IO.puts("No chairs available. Customer #{id} leaves.")
+          receptionist_loop(barber, waiting_list)
         end
-
-        if num_waiting == 0 do
-            IO.puts("Serving customer #{id}.")
-            cuthair(id)
-        else if chairs > 0 do
-            IO.puts("Customer #{id} sent to waiting room.")
-            chairs = chairs - 1
-        else 
-            IO.puts("No chairs available, customer #{id} sent away.")
-        end
-
-        IO.puts("")
-        :timer.sleep(:rand.uniform(1000))
     end
+  end
 
-    defp loop() do
-        # idk if this'll necessarily work...my idea is to spawn a pid and send it to receptionist looping
-        pid = spawn(__MODULE__, customer: , [[]])
-        Process.register(pid, :procName)
-        run_receptionist(pid)
-
-        # we might need to add these customers to a list to keep track of queue here
-
-        :timer.sleep(:rand.uniform(5000))
-        loop()
-    end
-
-    def customer() do
-        IO.puts("Customer spawned!\n")
-    end
-
+  # Customer Generator Process: Keeps creating customers
+  defp generate_customers(receptionist) do
+    id = :rand.uniform(1000)
+    send(receptionist, {:customer, id})
+    :timer.sleep(:rand.uniform(3000))  # Customers arrive randomly in interval of 3 secs
+    generate_customers(receptionist)  # Keep generating customers
+  end
 end
+
+Barbershop.start()
