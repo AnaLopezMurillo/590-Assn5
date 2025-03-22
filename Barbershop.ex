@@ -3,7 +3,7 @@ defmodule Barbershop do
     IO.puts("Starting the barbershop!")
 
     # Spawn barber and receptionist processes
-    barber = spawn(fn -> barber_loop([]) end)
+    barber = spawn(fn -> barber_loop() end)
     receptionist = spawn(fn -> receptionist_loop(barber, []) end)
 
     # Start generating customers
@@ -14,35 +14,21 @@ defmodule Barbershop do
   end
 
   # Barber Process: Handles customers waiting in queue
-  defp barber_loop([]) do
-    IO.puts("No customers. Barber is sleeping...")
-
+  defp barber_loop do
     receive do
-      {:next_customer, [next | rest]} ->
-        IO.puts("Barber is cutting hair for customer #{next}.")
+      {:next_customer, customer} ->
+        IO.puts("Barber is cutting hair for customer #{customer}.")
         :timer.sleep(:rand.uniform(3000))  # Simulating haircut
-        IO.puts("Customer #{next} is done. Barber is available.")
-        barber_loop(rest)  # Continue with next customer
+        IO.puts("Customer #{customer} is done. Barber is available.")
 
-      _ ->
-        barber_loop([])
+        # Let's keep the loop going
+        barber_loop()
+      :no_one_waiting ->
+        IO.puts("No customers. Barber is sleeping...")
     end
   end
 
-  defp barber_loop(waiting_list) do
-    receive do
-      {:next_customer, [next | rest]} ->
-        IO.puts("Barber is cutting hair for customer #{next}.")
-        :timer.sleep(:rand.uniform(3000))  # Simulating haircut
-        IO.puts("Customer #{next} is done. Barber is available.")
-        barber_loop(rest)
-
-      _ ->
-        barber_loop(waiting_list)
-    end
-  end
-
-  # Receptionist Process: Handles customer arrivals
+  # Receptionist process: manages queue
   defp receptionist_loop(barber, waiting_list) do
     receive do
       {:customer, id} ->
@@ -53,11 +39,13 @@ defmodule Barbershop do
           new_list = waiting_list ++ [id]
 
           # Wake up barber if he's idle
-          if waiting_list == [] do
-            send(barber, {:next_customer, new_list})
+          if length(waiting_list) == 0 do
+            [next | rest] = new_list
+            send(barber, {:next_customer, next})
+            receptionist_loop(barber, rest)
+          else
+            receptionist_loop(barber, new_list)
           end
-
-          receptionist_loop(barber, new_list)
         else
           IO.puts("No chairs available. Customer #{id} leaves.")
           receptionist_loop(barber, waiting_list)
@@ -65,12 +53,12 @@ defmodule Barbershop do
     end
   end
 
-  # Customer Generator Process: Keeps creating customers
+  # Generate customers
   defp generate_customers(receptionist) do
     id = :rand.uniform(1000)
     send(receptionist, {:customer, id})
-    :timer.sleep(:rand.uniform(3000))  # Customers arrive randomly in interval of 3 secs
-    generate_customers(receptionist)  # Keep generating customers
+    :timer.sleep(:rand.uniform(3000))  # Customers arrive randomly
+    generate_customers(receptionist)  # loop
   end
 end
 

@@ -56,3 +56,5 @@ defmodule Barbershop do
         end
     end
 end
+
+Barbershop.start()
